@@ -1,0 +1,7 @@
+[package]
+name = "linear_alg"
+version = "0.1.0"
+authors = ["Stewart Charles <trio.of.four@gmail.com>"]
+
+[dependencies]
+time = "0.1"
