@@ -19,31 +19,31 @@ fn main() {
     let de_share = Arc::new(de);
 
     let time = time::precise_time_s();
-
+    
     //Before each thread, create a copy of the Arc pointer
     let euler_copy = de_share.clone();
 
     /* For the closure, move ownership of the parameters to the thread (the copy of the
        pointer in particulare is key here! */
     let answer =thread::spawn(move || {
-        euler_method(0.0,(0.0,5.0),0.0000001, &euler_copy)
+        euler_method(0.0,(0.0,5.0),0.0000001, euler_copy)
     });
 
     let heun_copy = de_share.clone();
     let imp_answer = thread::spawn(move || {
-        improved_euler(0.0,(0.0,5.0), 0.0000001, &heun_copy)
+        improved_euler(0.0,(0.0,5.0), 0.0000001, heun_copy)
     });
     
-    let runga_copy = de_share.clone();
-    let runga_answer = thread::spawn(move || {
-        runga_kutta(0.0,(0.0,5.0),0.0000001, &runga_copy)
+    let runge_copy = de_share.clone();
+    let runge_answer = thread::spawn(move || {
+        runge_kutta(0.0,(0.0,5.0),0.0000001, runge_copy)
     });
 
     /*Ensure the Main thread does not exit until the Approximation threads
     are all complete so that the results print. */
     let a = answer.join().unwrap().1;
     let b = imp_answer.join().unwrap().1;
-    let c = runga_answer.join().unwrap().1;
+    let c = runge_answer.join().unwrap().1;
     let linear_time = a + b + c;
     let total = time::precise_time_s() - time;
 
@@ -54,7 +54,7 @@ fn main() {
 }
 
 
-fn euler_method<F:Fn(f64,f64)->f64>(ystart:f64,trange:(f64,f64),h:f64,de:&Arc<F>)-> (f64,f64) {
+fn euler_method<F:Fn(f64,f64)->f64>(ystart:f64,trange:(f64,f64),h:f64,de:Arc<F>)-> (f64,f64) {
     let start = time::precise_time_s();
     let mut ycurrent = ystart;
     let mut tcurrent = trange.0;
@@ -68,7 +68,7 @@ fn euler_method<F:Fn(f64,f64)->f64>(ystart:f64,trange:(f64,f64),h:f64,de:&Arc<F>
 }
 
 /* Also known as the Heun method for approximation*/
-fn improved_euler<F:Fn(f64,f64)->f64>(ystart:f64,trange:(f64,f64),h:f64,de:&Arc<F>) -> (f64,f64) {
+fn improved_euler<F:Fn(f64,f64)->f64>(ystart:f64,trange:(f64,f64),h:f64,de:Arc<F>) -> (f64,f64) {
     let start = time::precise_time_s();
     let mut ycurrent = ystart;
     let mut tcurrent = trange.0;
@@ -82,7 +82,7 @@ fn improved_euler<F:Fn(f64,f64)->f64>(ystart:f64,trange:(f64,f64),h:f64,de:&Arc<
     (ycurrent,end)
 }
 
-fn runga_kutta<F:Fn(f64,f64)->f64>(ystart:f64,trange:(f64,f64),h:f64,de:&Arc<F>)-> (f64,f64) {
+fn runge_kutta<F:Fn(f64,f64)->f64>(ystart:f64,trange:(f64,f64),h:f64,de:Arc<F>)-> (f64,f64) {
     let start = time::precise_time_s();
     let mut ycurrent = ystart;
     let mut tcurrent = trange.0;
@@ -99,6 +99,6 @@ fn runga_kutta<F:Fn(f64,f64)->f64>(ystart:f64,trange:(f64,f64),h:f64,de:&Arc<F>)
         tcurrent += h;
     }
     let end = time::precise_time_s() - start;
-    println!("Runga Kutta Approximation: {}\nTime: {}\n",ycurrent, end);
+    println!("Runge Kutta Approximation: {}\nTime: {}\n",ycurrent, end);
     (ycurrent,end)
 }
