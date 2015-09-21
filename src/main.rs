@@ -25,7 +25,7 @@ fn main() {
 
     /* For the closure, move ownership of the parameters to the thread (the copy of the
        pointer in particulare is key here! */
-    let answer =thread::spawn(move || {
+    let answer = thread::spawn(move || {
         euler_method(0.0,(0.0,5.0),0.0000001, euler_copy)
     });
 
@@ -72,9 +72,10 @@ fn improved_euler<F:Fn(f64,f64)->f64>(ystart:f64,trange:(f64,f64),h:f64,de:Arc<F
     let start = time::precise_time_s();
     let mut ycurrent = ystart;
     let mut tcurrent = trange.0;
+    let half_h = h/2.0;
     while tcurrent < trange.1 {
         let ynext = ycurrent + h*de(tcurrent,ycurrent);
-        ycurrent += (h/2.0)*(de(tcurrent,ycurrent) + de(tcurrent + h,ynext));
+        ycurrent += half_h*(de(tcurrent,ycurrent) + de(tcurrent + h,ynext));
         tcurrent += h;
     }
     let end = time::precise_time_s() - start;
