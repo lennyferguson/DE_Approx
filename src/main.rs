@@ -1,3 +1,5 @@
+//! Author: Stewart Charles
+
 use std::thread;
 use std::sync::Arc;
 extern crate time;
@@ -26,17 +28,17 @@ fn main() {
     /* For the closure, move ownership of the parameters to the thread (the copy of the
        pointer in particulare is key here! */
     let answer = thread::spawn(move || {
-        euler_method(0.0,(0.0,5.0),0.0000001, euler_copy)
+        euler_method(0.0,(0.0,5.0),0.00000001, euler_copy)
     });
 
     let heun_copy = de_share.clone();
     let imp_answer = thread::spawn(move || {
-        improved_euler(0.0,(0.0,5.0), 0.0000001, heun_copy)
+        improved_euler(0.0,(0.0,5.0), 0.00000001, heun_copy)
     });
     
     let runge_copy = de_share.clone();
     let runge_answer = thread::spawn(move || {
-        runge_kutta(0.0,(0.0,5.0),0.0000001, runge_copy)
+        runge_kutta(0.0,(0.0,5.0),0.00000001, runge_copy)
     });
 
     /*Ensure the Main thread does not exit until the Approximation threads
@@ -53,9 +55,9 @@ fn main() {
     let total = time::precise_time_s() - time;
 
     println!("---RESULTS---");
-    println!("Total Time: {}", total);
-    println!("Serialized Time: {}", serialized_time);
-    println!("Time Saved: {}\n", serialized_time - total); 
+    println!("Total Time: {} seconds", total);
+    println!("Serialized Time: {} seconds", serialized_time);
+    println!("Time Saved: {} seconds\n", serialized_time - total); 
 }
 
 
@@ -68,7 +70,7 @@ fn euler_method<F:Fn(f64,f64)->f64>(ystart:f64,trange:(f64,f64),h:f64,de:Arc<F>)
         tcurrent += h;
     }
     let end = time::precise_time_s() - start;
-    println!("Euler Approximation: {}\nTime: {}\n", ycurrent, end);
+    println!("Euler Approximation: {}\nTime: {} seconds\n", ycurrent, end);
     (ycurrent,end)
 }
 
@@ -84,7 +86,7 @@ fn improved_euler<F:Fn(f64,f64)->f64>(ystart:f64,trange:(f64,f64),h:f64,de:Arc<F
         tcurrent += h;
     }
     let end = time::precise_time_s() - start;
-    println!("Heun Approximation: {}\nTime: {}\n", ycurrent, end);
+    println!("Heun Approximation: {}\nTime: {} seconds\n", ycurrent, end);
     (ycurrent,end)
 }
 
@@ -105,6 +107,6 @@ fn runge_kutta<F:Fn(f64,f64)->f64>(ystart:f64,trange:(f64,f64),h:f64,de:Arc<F>)-
         tcurrent += h;
     }
     let end = time::precise_time_s() - start;
-    println!("Runge Kutta Approximation: {}\nTime: {}\n",ycurrent, end);
+    println!("Runge Kutta Approximation: {}\nTime: {} seconds\n",ycurrent, end);
     (ycurrent,end)
 }
