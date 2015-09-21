@@ -40,17 +40,22 @@ fn main() {
     });
 
     /*Ensure the Main thread does not exit until the Approximation threads
-    are all complete so that the results print. */
+    are all complete so that the results print. 
+     
+     The order of these does not actually matter. The total time will be approximately
+     equal to the time it takes the longest running thread to join. Similarly, the serialized time
+     will be a function of the length of individual times. 
+     The order of the joins has no significant meaning.*/
     let a = answer.join().unwrap().1;
     let b = imp_answer.join().unwrap().1;
     let c = runge_answer.join().unwrap().1;
-    let linear_time = a + b + c;
+    let serialized_time = a + b + c;
     let total = time::precise_time_s() - time;
 
     println!("---RESULTS---");
     println!("Total Time: {}", total);
-    println!("Linear Time: {}", linear_time);
-    println!("Time Saved: {}\n", linear_time - total); 
+    println!("Serialized Time: {}", serialized_time);
+    println!("Time Saved: {}\n", serialized_time - total); 
 }
 
 
