@@ -6,14 +6,13 @@ extern crate time;
 
 #[allow(unused_must_use)]
 #[allow(unused_variables)]
-
 fn main() {
     /* This closure represents the DE that we are approximating. This particular example does not
        actually use the 't' parameter, though there are DE's that do have the 't' parameter.
        The different approximation techniques utilize the 't' parameter in their general 'solution' 
        to the approximation, which makes it necessary to include for our 'de'.*/
     let de = |t:f64,y:f64| {
-        10.0 - 2.0*y - 0.27*y.powf(1.5)
+        10.0 - 0.2 * y - 0.27 * y.powf(1.5)
     };
     /* Create an ARC (Automatic Reference Counted Shared pointer) to the Closure that allows
        us to 'share' the Function between the different threads without worrying about 
@@ -28,9 +27,8 @@ fn main() {
     */
     let euler_copy = de_share.clone();
     let answer = thread::spawn(move || {
-        euler_method(0.0,(0.0,5.0),0.0000001, euler_copy);
+        euler_method(0.0,(0.0,5.0),0.0000001, euler_copy)
     });
-    answer1.join();
 
     let heun_copy = de_share.clone();
     let imp_answer = thread::spawn(move || {
@@ -49,7 +47,6 @@ fn main() {
      equal to the time it takes the longest running thread to join. Similarly, the serialized time
      will be a function of the length of individual times. 
      The order of the joins has no significant meaning.*/
-/*
     let a = answer.join().unwrap().1;
     let b = imp_answer.join().unwrap().1;
     let c = runge_answer.join().unwrap().1;
@@ -60,10 +57,9 @@ fn main() {
     println!("Total Time: {} seconds", total);
     println!("Serialized Time: {} seconds", serialized_time);
     println!("Time Saved: {} seconds\n", serialized_time - total); 
-  */  
 }
 
-
+#[allow(unused_variables)]
 fn euler_method<F:Fn(f64,f64)->f64>(ystart:f64,trange:(f64,f64),h:f64,de:Arc<F>)-> (f64,f64) {
     let start = time::precise_time_s();
     let mut ycurrent = ystart;
@@ -78,6 +74,7 @@ fn euler_method<F:Fn(f64,f64)->f64>(ystart:f64,trange:(f64,f64),h:f64,de:Arc<F>)
     (ycurrent,end)
 }
 
+#[allow(unused_variables)]
 /* Also known as the Heun method for approximation*/
 fn improved_euler<F:Fn(f64,f64)->f64>(ystart:f64,trange:(f64,f64),h:f64,de:Arc<F>) -> (f64,f64) {
     let start = time::precise_time_s();
@@ -95,6 +92,7 @@ fn improved_euler<F:Fn(f64,f64)->f64>(ystart:f64,trange:(f64,f64),h:f64,de:Arc<F
     (ycurrent,end)
 }
 
+#[allow(unused_variables)]
 fn runge_kutta<F:Fn(f64,f64)->f64>(ystart:f64,trange:(f64,f64),h:f64,de:Arc<F>)-> (f64,f64) {
     let start = time::precise_time_s();
     let mut ycurrent = ystart;
