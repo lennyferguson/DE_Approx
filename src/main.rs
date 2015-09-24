@@ -13,7 +13,7 @@ fn main() {
        The different approximation techniques utilize the 't' parameter in their general 'solution' 
        to the approximation, which makes it necessary to include for our 'de'.*/
     let de = |t:f64,y:f64| {
-        10.0 - 0.2*y - 0.27 * y.powf(1.5)
+        10.0 - 2.0*y - 0.27*y.powf(1.5)
     };
     /* Create an ARC (Automatic Reference Counted Shared pointer) to the Closure that allows
        us to 'share' the Function between the different threads without worrying about 
@@ -21,26 +21,27 @@ fn main() {
     let de_share = Arc::new(de);
 
     let time = time::precise_time_s();
-    
-    //Before each thread, create a copy of the Arc pointer
-    let euler_copy = de_share.clone();
 
+       
     /* For the closure, move ownership of the parameters to the thread (the copy of the
-       pointer in particulare is key here! */
+    pointer in particulare is key here!
+    */
+    let euler_copy = de_share.clone();
     let answer = thread::spawn(move || {
-        euler_method(0.0,(0.0,5.0),0.00000001, euler_copy)
+        euler_method(0.0,(0.0,5.0),0.0000001, euler_copy);
     });
+    answer1.join();
 
     let heun_copy = de_share.clone();
     let imp_answer = thread::spawn(move || {
-        improved_euler(0.0,(0.0,5.0), 0.00000001, heun_copy)
+        improved_euler(0.0,(0.0,5.0), 0.0000001, heun_copy)
     });
     
     let runge_copy = de_share.clone();
     let runge_answer = thread::spawn(move || {
-        runge_kutta(0.0,(0.0,5.0),0.00000001, runge_copy)
+        runge_kutta(0.0,(0.0,5.0),0.0000001, runge_copy)
     });
-
+    
     /*Ensure the Main thread does not exit until the Approximation threads
     are all complete so that the results print. 
      
@@ -48,6 +49,7 @@ fn main() {
      equal to the time it takes the longest running thread to join. Similarly, the serialized time
      will be a function of the length of individual times. 
      The order of the joins has no significant meaning.*/
+/*
     let a = answer.join().unwrap().1;
     let b = imp_answer.join().unwrap().1;
     let c = runge_answer.join().unwrap().1;
@@ -58,6 +60,7 @@ fn main() {
     println!("Total Time: {} seconds", total);
     println!("Serialized Time: {} seconds", serialized_time);
     println!("Time Saved: {} seconds\n", serialized_time - total); 
+  */  
 }
 
 
@@ -65,7 +68,8 @@ fn euler_method<F:Fn(f64,f64)->f64>(ystart:f64,trange:(f64,f64),h:f64,de:Arc<F>)
     let start = time::precise_time_s();
     let mut ycurrent = ystart;
     let mut tcurrent = trange.0;
-    while tcurrent < trange.1 {
+    let end = ((trange.1 - trange.0)/h).round() as usize;
+    for x in 0..end {
         ycurrent += h*de(tcurrent,ycurrent);
         tcurrent += h;
     }
@@ -80,9 +84,10 @@ fn improved_euler<F:Fn(f64,f64)->f64>(ystart:f64,trange:(f64,f64),h:f64,de:Arc<F
     let mut ycurrent = ystart;
     let mut tcurrent = trange.0;
     let half_h = h/2.0;
-    while tcurrent < trange.1 {
-        let ynext = ycurrent + h*de(tcurrent,ycurrent);
-        ycurrent += half_h*(de(tcurrent,ycurrent) + de(tcurrent + h,ynext));
+    let end = ((trange.1 - trange.0)/h).round() as usize;
+    for x in 0..end {
+        let k1 = de(tcurrent,ycurrent);
+        ycurrent += half_h*(k1 + de(tcurrent + h , ycurrent + h*k1));
         tcurrent += h;
     }
     let end = time::precise_time_s() - start;
@@ -98,7 +103,8 @@ fn runge_kutta<F:Fn(f64,f64)->f64>(ystart:f64,trange:(f64,f64),h:f64,de:Arc<F>)-
     /* Precompute division operations outside of loop for efficiency*/
     let half_h = h/2.0;
     let sixth_h = h/6.0;
-    while tcurrent < trange.1 {
+    let end = ((trange.1 - trange.0)/h).round() as usize;
+    for x in 0..end {
         let k1 = de(tcurrent,ycurrent);
         let k2 = de(tcurrent + half_h, ycurrent + half_h*k1);
         let k3 = de(tcurrent + half_h, ycurrent + half_h*k2);
