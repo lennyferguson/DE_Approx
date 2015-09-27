@@ -1,4 +1,4 @@
-//! Author: Stewart ChOAarles
+//! Author: Stewart Charles
 
 use std::thread;
 use std::sync::Arc;
@@ -24,7 +24,7 @@ fn main() {
     const Y0:f64 = 0.0;
     const T0:f64 = 0.0;
     const T_END:f64 = 5.0;
-    const H:f64 = 0.00000001;
+    const H:f64 = 0.0000001;
     let steps = ((T_END - T0)/H).round() as usize;
     
     let time = time::precise_time_s();
