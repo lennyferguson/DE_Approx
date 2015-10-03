@@ -7,21 +7,22 @@ extern crate time;
 #[allow(unused_must_use)]
 #[allow(unused_variables)]
 fn main() {
-    /* This closure represents the DE that we are approximating. This particular example does not
+    /* -This closure represents the DE that we are approximating. This particular example does not
        actually use the 't' parameter, though there are DE's that do have the 't' parameter.
        The different approximation techniques utilize the 't' parameter in their general 'solution' 
        to the approximation, which makes it necessary to include for our 'de'.
-
-       Not that the parameters are not mutable. This allows use to safely share the function
-       once it's wrapped in an Arc without requiring the use of a Mutex.*/
+       
+       -Note that the parameters are not mutable. This allows use to safely share the function
+       once it's wrapped in an Arc without requiring the use of a Mutex. */
     let de = |t:f64,y:f64| {
         10.0 - 0.2 * y - 0.27 * y.powf(1.5)
     };
+
     /* Create an ARC (Automatic Reference Counted Shared pointer) to the Closure that allows
        us to 'share' the Function between the different threads */
     let de_share = Arc::new(de);
     
-    println!("\n----Threaded Execution with Atomic Locks----\n");
+    println!("\n----Threaded Execution with Atomic Reference Counting----\n");
 
     /* Set the initial values and range of T as constants.*/
     const Y0:f64 = 0.0;
@@ -34,8 +35,7 @@ fn main() {
 
        
     /* For the closure, move ownership of the parameters to the thread (the copy of the
-    pointer in particulare is key here!
-    */
+    pointer in particulare is key here! */
     let euler_copy = de_share.clone();
     let answer = thread::spawn(move || {
         threaded_funcs::euler_method(Y0, T0, steps, H, euler_copy)
@@ -52,7 +52,7 @@ fn main() {
     });
     
     /*Ensure the Main thread does not exit until the Approximation threads
-    are all complete so that the results print. 
+     are all complete so that the results print. 
      
      The order of these does not actually matter. The total time will be approximately
      equal to the time it takes the longest running thread to join. Similarly, the serialized time
@@ -64,7 +64,7 @@ fn main() {
 
     let total = time::precise_time_s() - time;
 
-    println!("----Serialized Execution without Atomics----\n");
+    println!("----Serialized Execution without Arc----\n");
     
     let mut serialized = 0.0;
     serialized += serial_funcs::euler_method(Y0,T0,steps,H,&serial_funcs::regular_de).1;
@@ -81,12 +81,11 @@ mod threaded_funcs {
     use std::sync::Arc;
     extern crate time;
     
-    #[allow(unused_variables)]
     pub fn euler_method<F:Fn(f64,f64)->f64>(y0:f64, t0:f64, steps:usize, h:f64,de:Arc<F>)-> (f64,f64) {
         let start = time::precise_time_s();
         let mut ycurrent = y0;
         let mut tcurrent = t0;
-        for x in 0..steps {
+        for _ in 0..steps {
             ycurrent += h*de(tcurrent,ycurrent);
             tcurrent += h;
         }
@@ -95,14 +94,13 @@ mod threaded_funcs {
         (ycurrent,end)
     }
     
-    #[allow(unused_variables)]
     /* Also known as the Heun method for approximation*/
     pub fn improved_euler<F:Fn(f64,f64)->f64>(y0:f64, t0:f64, steps:usize, h:f64, de:Arc<F>) -> (f64,f64) {
         let start = time::precise_time_s();
         let mut ycurrent = y0;
         let mut tcurrent = t0;
         let half_h = h/2.0;
-        for x in 0..steps {
+        for _ in 0..steps {
             let k1 = de(tcurrent,ycurrent);
             ycurrent += half_h*(k1 + de(tcurrent + h , ycurrent + h*k1));
             tcurrent += h;
@@ -112,7 +110,6 @@ mod threaded_funcs {
         (ycurrent,end)
     }
     
-    #[allow(unused_variables)]
     pub fn runge_kutta<F:Fn(f64,f64)->f64>(y0:f64, t0:f64, steps:usize, h:f64, de:Arc<F>)-> (f64,f64) {
         let start = time::precise_time_s();
         let mut ycurrent = y0;
@@ -121,7 +118,7 @@ mod threaded_funcs {
         /* Precompute division operations outside of loop for efficiency*/
         let half_h = h/2.0;
         let sixth_h = h/6.0;
-        for x in 0..steps {
+        for _ in 0..steps {
             let k1 = de(tcurrent,ycurrent);
             let k2 = de(tcurrent + half_h, ycurrent + half_h*k1);
             let k3 = de(tcurrent + half_h, ycurrent + half_h*k2);
@@ -143,12 +140,11 @@ mod serial_funcs {
         10.0 - 0.2 * y - 0.27 * y.powf(1.5)
     }
     
-    #[allow(unused_variables)]
     pub fn euler_method<F:Fn(f64,f64)->f64>(y0:f64,t0:f64,steps:usize, h:f64,de:&F)-> (f64,f64) {
         let start = time::precise_time_s();
         let mut ycurrent = y0;
         let mut tcurrent = t0;
-        for x in 0..steps {
+        for _ in 0..steps {
             ycurrent += h*de(tcurrent,ycurrent);
             tcurrent += h;
         }
@@ -157,14 +153,13 @@ mod serial_funcs {
         (ycurrent,end)
     }
     
-    #[allow(unused_variables)]
     /* Also known as the Heun method for approximation*/
     pub fn improved_euler<F:Fn(f64,f64)->f64>(y0:f64,t0:f64,steps:usize, h:f64,de:&F)-> (f64,f64) {
         let start = time::precise_time_s();
         let mut ycurrent = y0;
         let mut tcurrent = t0;
         let half_h = h/2.0;
-        for x in 0..steps {
+        for _ in 0..steps {
             let k1 = de(tcurrent,ycurrent);
             ycurrent += half_h*(k1 + de(tcurrent + h , ycurrent + h*k1));
             tcurrent += h;
@@ -174,7 +169,6 @@ mod serial_funcs {
         (ycurrent,end)
     }
     
-    #[allow(unused_variables)]
     pub fn runge_kutta<F:Fn(f64,f64)->f64>(y0:f64,t0:f64,steps:usize, h:f64,de:&F)-> (f64,f64) {
         let start = time::precise_time_s();
         let mut ycurrent = y0;
@@ -183,7 +177,7 @@ mod serial_funcs {
         /* Precompute division operations outside of loop for efficiency*/
         let half_h = h/2.0;
         let sixth_h = h/6.0;
-        for x in 0..steps {
+        for _ in 0..steps {
             let k1 = de(tcurrent,ycurrent);
             let k2 = de(tcurrent + half_h, ycurrent + half_h*k1);
             let k3 = de(tcurrent + half_h, ycurrent + half_h*k2);
