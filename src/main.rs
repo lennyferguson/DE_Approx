@@ -4,7 +4,7 @@ use std::thread;
 use std::sync::Arc;
 extern crate time;
 
-#[allow(unused_must_use)]
+
 #[allow(unused_variables)]
 fn main() {
     /* -This closure represents the DE that we are approximating. This particular example does not
@@ -17,10 +17,6 @@ fn main() {
     let de = |t:f64,y:f64| {
         10.0 - 0.2 * y - 0.27 * y.powf(1.5)
     };
-
-    /* Create an ARC (Automatic Reference Counted Shared pointer) to the Closure that allows
-       us to 'share' the Function between the different threads */
-    let de_share = Arc::new(de);
     
     println!("\n----Threaded Execution with Atomic Reference Counting----\n");
 
@@ -28,26 +24,30 @@ fn main() {
     const Y0:f64 = 0.0;
     const T0:f64 = 0.0;
     const T_END:f64 = 5.0;
-    const H:f64 = 0.0000001;
+    const H:f64 = 0.00000005;
     let steps = ((T_END - T0)/H).round() as usize;
     
-    let time = time::precise_time_s();
+    /* Create an ARC (Atomic Reference Counted Shared pointer) to the Closure that allows
+       us to 'share' the Function between the different threads without worrying about the 
+       lifetime of the closure being limited to the 'main' thread. */
+    let de_share = Arc::new(de);
 
-       
+    let time = time::precise_time_s();
+    
     /* For the closure, move ownership of the parameters to the thread (the copy of the
     pointer in particulare is key here! */
     let euler_copy = de_share.clone();
-    let answer = thread::spawn(move || {
+    let e_thread = thread::spawn(move || {
         threaded_funcs::euler_method(Y0, T0, steps, H, euler_copy)
     });
 
     let heun_copy = de_share.clone();
-    let imp_answer = thread::spawn(move || {
+    let h_thread = thread::spawn(move || {
         threaded_funcs::improved_euler(Y0, T0, steps, H, heun_copy)
     });
     
     let runge_copy = de_share.clone();
-    let runge_answer = thread::spawn(move || {
+    let r_thread = thread::spawn(move || {
         threaded_funcs::runge_kutta(Y0, T0, steps, H, runge_copy)
     });
     
@@ -58,12 +58,16 @@ fn main() {
      equal to the time it takes the longest running thread to join. Similarly, the serialized time
      will be a function of the length of individual times. 
      The order of the joins has no significant meaning.*/
-    answer.join();
-    imp_answer.join();
-    runge_answer.join();
+    let euler_answer = e_thread.join().unwrap();
+    println!("Euler Approximation: {}\nTime: {} seconds\n", euler_answer.0, euler_answer.1);
+    
+    let heun_answer = h_thread.join().unwrap();
+    println!("Heun Approximation: {}\nTime: {} seconds\n", heun_answer.0, heun_answer.1);
+
+    let runge_answer = r_thread.join().unwrap();
+    println!("Runge Kutta Approximation: {}\nTime: {} seconds\n",runge_answer.0, runge_answer.1);
 
     let total = time::precise_time_s() - time;
-
     println!("----Serialized Execution without Arc----\n");
     
     let mut serialized = 0.0;
@@ -90,7 +94,6 @@ mod threaded_funcs {
             tcurrent += h;
         }
         let end = time::precise_time_s() - start;
-        println!("Euler Approximation: {}\nTime: {} seconds\n", ycurrent, end);
         (ycurrent,end)
     }
     
@@ -106,7 +109,6 @@ mod threaded_funcs {
             tcurrent += h;
         }
         let end = time::precise_time_s() - start;
-        println!("Heun Approximation: {}\nTime: {} seconds\n", ycurrent, end);
         (ycurrent,end)
     }
     
@@ -127,11 +129,11 @@ mod threaded_funcs {
             tcurrent += h;
         }
         let end = time::precise_time_s() - start;
-        println!("Runge Kutta Approximation: {}\nTime: {} seconds\n",ycurrent, end);
         (ycurrent,end)
     }
 }
 
+/* Version of the Approximation functions that accept  a reference to a function.*/
 mod serial_funcs {
     extern crate time;
 
